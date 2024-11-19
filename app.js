@@ -1,4 +1,5 @@
 require("dotenv").config();
+const bcrypt = require("bcrypt");
 const path = require("node:path");
 const { Pool } = require("pg");
 const express = require("express");
@@ -34,9 +35,12 @@ passport.use(
       if (!user) {
         return done(null, false, { message: "Incorrect username" });
       }
-      if (user.password !== password) {
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+        // passwords do not match!
         return done(null, false, { message: "Incorrect password" });
       }
+
       return done(null, user);
     } catch (err) {
       return done(err);
@@ -91,15 +95,17 @@ app.post(
 );
 
 app.post("/sign-up", async (req, res, next) => {
-  try {
-    await pool.query("INSERT INTO users (username, password) VALUES ($1, $2)", [
-      req.body.username,
-      req.body.password,
-    ]);
-    res.redirect("/");
-  } catch (err) {
-    return next(err);
-  }
+  bcrypt.hash(req.body.password, 10, async (err, hashedPassword) => {
+    try {
+      await pool.query(
+        "INSERT INTO users (username, password) VALUES ($1, $2)",
+        [req.body.username, hashedPassword]
+      );
+      res.redirect("/");
+    } catch (err) {
+      return next(err);
+    }
+  });
 });
 
 app.listen(3000, () =>
