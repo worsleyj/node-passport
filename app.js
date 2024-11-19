@@ -25,6 +25,10 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
+app.get("/sign-up", (req, res) => {
+  res.render("sign-up-form");
+});
+
 app.listen(3000, () =>
   console.log("passport application launched on port 3000")
 );
